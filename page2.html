@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Sweet 16 Kiwi!</title>
+    <!-- Google Fonts for a cute look -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* --- Reset & Base Layout --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevent scrollbars during animations */
+            font-family: 'Pacifico', cursive;
+        }
+
+        /* --- The Stage --- */
+        #stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Starts black */
+            background-image: url('https://z-cdn-media.chatglm.cn/files/71c98a46-e856-43cc-b1d2-e1a7d91fadc0.png?auth_key=1867026674-50f75728974d4beda9d42d0a1f8c1bf5-0-27c128ff43f9df7a2d34b78e54bf4e4d');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0; /* Hidden initially for fade-in */
+            transition: opacity 2s ease-in-out;
+        }
+
+        /* --- The Curtain (Black Overlay) --- */
+        #curtain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1000;
+            pointer-events: none; /* Let clicks pass through when invisible */
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        /* --- Start Button --- */
+        #start-btn {
+            position: absolute;
+            z-index: 500;
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            color: white;
+            background-color: #ff69b4; /* Hot Pink */
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.6);
+            transition: transform 0.2s, background-color 0.2s;
+            font-family: 'Pacifico', cursive;
+            opacity: 0; /* Hidden initially */
+        }
+
+        #start-btn:hover {
+            transform: scale(1.1);
+            background-color: #ff1493;
+        }
+
+        /* --- Animation Elements --- */
+
+        /* 1. Banner */
+        #banner-container {
+            position: absolute;
+            top: -400px; /* Start above screen */
+            left: 58%;
+            transform: translateX(-60%);
+            width:80%;
+            max-width: 600px;
+            z-index: 20;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3));
+            transition: top 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bounce effect */
+        }
+
+        #banner-container img {
+            width: 80%;
+            height: auto;
+            display: block;
+        }
+
+        /* 2. Cake */
+        #cake-container {
+            position: absolute;
+            bottom: -400px; /* Start below screen */
+            left: 52%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px;
+            z-index: 20;
+            filter: drop-shadow(0 -10px 20px rgba(0,0,0,0.4));
+            transition: bottom 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bounce effect */
+            transition-delay: 0.8s;
+        }
+
+        #cake-container img {
+            width: 80%;
+            height: auto;
+            display: block;
+        }
+
+        /* 3. Balloons Layer */
+        #balloon-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10000;
+            overflow: hidden;
+        }
+
+        .balloon {
+            position: absolute;
+            bottom: -150px; /* Start below view */
+            width: 60px;
+            height: 80px;
+            z-index: 10000;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8), rgba(255,105,180,0.6) 60%, rgba(255,20,147,0.8) 100%);
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1);
+            opacity: 0.9;
+        }
+        
+        /* Balloon string */
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            width: 1px;
+            z-index: 1000;
+            height: 20px;
+            background: rgba(255,255,255,0.7);
+        }
+
+        /* 4. Lights Effect */
+        #lights-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            background: radial-gradient(circle, transparent 60%, rgba(255,255,255,0) 100%);
+            mix-blend-mode: overlay;
+            transition: background 0.5s;
+        }
+
+        /* --- Classes for Animation States --- */
+
+        /* Initial Page Load State */
+        body.loaded #stage {
+            opacity: 1; /* Fade to white/pink */
+        }
+        
+        body.loaded #start-btn {
+            opacity: 1;
+            transition-delay: 2s; /* Wait for background fade */
+        }
+
+        /* Animation Triggered State */
+        body.celebrating #banner-container {
+            top: 2%; /* Final position */
+        }
+
+        body.celebrating #cake-container {
+            bottom: 3%; /* Final position */
+        }
+
+        /* Disco Lights Class */
+        body.lights-on #lights-overlay {
+            animation: discoLights 2s infinite alternate;
+        }
+
+        @keyframes discoLights {
+            0% { box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.2); }
+            25% { box-shadow: inset 0 0 50px rgba(0, 255, 0, 0.2); }
+            50% { box-shadow: inset 0 0 50px rgba(0, 0, 255, 0.2); }
+            75% { box-shadow: inset 0 0 50px rgba(255, 255, 0, 0.2); }
+            100% { box-shadow: inset 0 0 50px rgba(255, 0, 255, 0.2); }
+        }
+        /* Add this Keyframe Animation definition first */
+@keyframes floatPulse {
+  0% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 105, 180, 0.6); }
+  50% { transform: scale(1.1) translateY(-3px); box-shadow: 0 10px 25px rgba(255, 105, 180, 0.8); }
+  100% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 105, 180, 0.6); }
+}
+
+/* Update the hover state to use the animation */
+#start-btn:hover {
+  background-color: #ff1493;
+  animation: floatPulse 1s ease-in-out infinite; /* This makes it breathe/pulse */
+}
+    </style>
+</head>
+<body>
+
+    <!-- Curtain Overlay for Start and End Fade -->
+    <div id="curtain"></div>
+    <audio id="bgMusic" loop>
+  <source src="KMTK.mp3" type="audio/mp3">
+  </audio>
+    <!-- Main Stage -->
+    <div id="stage">
+        
+        <!-- Lights Layer -->
+        <div id="lights-overlay"></div>
+
+        <!-- Balloon Layer -->
+        <div id="balloon-layer"></div>
+
+        <!-- The Banner -->
+        <div id="banner-container">
+            <img src="banner.png" alt="Happy Birthday Banner">
+        </div>
+
+        <!-- The Cake -->
+        <div id="cake-container">
+            <img src="cake.png" alt="Sweet 16 Cake">
+        </div>
+
+        <!-- Start Button -->
+        
+
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const curtain = document.getElementById('curtain');
+        const body = document.body;
+        const balloonLayer = document.getElementById('balloon-layer');
+        const music = document.getElementById("bgMusic");
+
+        // --- MUSIC SETUP START ---
+        // 1. Check if we should play music from previous page
+        if (localStorage.getItem("playMusic") === "yes") {
+            const t = localStorage.getItem("musicTime");
+            if (t) music.currentTime = parseFloat(t); 
+            music.play().catch(e => console.log("Autoplay policy may block this:", e));
+        }
+
+        // 2. Save music time constantly for the next page
+        setInterval(() => {
+            if (!music.paused) {
+                localStorage.setItem("musicTime", music.currentTime);
+            }
+        }, 500);
+        // --- MUSIC SETUP END ---
+
+        // 1. Start the Sequence Automatically
+        setTimeout(() => {
+            body.classList.add('loaded');
+            curtain.style.opacity = '0'; // Fade curtain out
+            
+            // Wait 1 second after curtain starts fading, then start party
+            setTimeout(() => {
+                startCelebration();
+            }, 1000); 
+        }, 500);
+
+        function startCelebration() {
+            // Trigger the CSS animations (Banner drops immediately, Cake waits 0.8s due to CSS delay)
+            body.classList.add('celebrating');
+
+            // Wait for Banner/Cake to be in place (approx 1.5s), then FX
+            setTimeout(() => {
+                triggerEffects();
+            }, 1500);
+        }
+
+        function triggerEffects() {
+            // Lights On
+            body.classList.add('lights-on');
+
+            // Balloons
+            spawnBalloons();
+
+            // Party Poppers & Confetti
+            partyPopperEffect(); 
+            
+            // Continuous confetti rain
+            const duration = 8000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#ff69b4', '#ffffff', '#ff0000', '#add8e6']
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#ff69b4', '#ffffff', '#ff0000', '#add8e6']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+
+            // End Sequence: Fade to black after 10 seconds of party
+            setTimeout(() => {
+                endSequence();
+            }, 10000); 
+        }
+
+        // --- Helper Functions ---
+
+        function spawnBalloons() {
+            const colors = ['#ff69b4', '#ff1493', '#ffffff', '#ffb6c1', '#ff0000'];
+            const totalBalloons = 20;
+
+            for (let i = 0; i < totalBalloons; i++) {
+                setTimeout(() => {
+                    const balloon = document.createElement('div');
+                    balloon.classList.add('balloon');
+                    const leftPos = Math.random() * 90 + 5; 
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const size = Math.random() * 40 + 40; 
+                    const duration = Math.random() * 5 + 5; 
+
+                    balloon.style.left = leftPos + '%';
+                    balloon.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), ${color} 60%, ${color} 100%)`;
+                    balloon.style.width = size + 'px';
+                    balloon.style.height = (size * 1.2) + 'px';
+                    
+                    const animation = balloon.animate([
+                        { transform: `translateY(0) rotate(0deg)`, opacity: 0 },
+                        { transform: `translateY(-20vh) rotate(5deg)`, opacity: 1, offset: 0.1 },
+                        { transform: `translateY(-80vh) rotate(-5deg)`, opacity: 1, offset: 0.8 },
+                        { transform: `translateY(-120vh) rotate(0deg)`, opacity: 0 }
+                    ], {
+                        duration: duration * 1000,
+                        easing: 'ease-out'
+                    });
+
+                    balloonLayer.appendChild(balloon);
+                    animation.onfinish = () => balloon.remove();
+                }, i * 300); 
+            }
+        }
+
+        function partyPopperEffect() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { x: 0.1, y: 0.8 },
+                colors: ['#ff0', '#00f', '#f0f'],
+                zIndex: 100
+            });
+            setTimeout(() => {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { x: 0.9, y: 0.8 },
+                    colors: ['#ff0', '#00f', '#f0f'],
+                    zIndex: 100
+                });
+            }, 200);
+            setTimeout(() => {
+                confetti({
+                    particleCount: 150,
+                    spread: 100,
+                    origin: { x: 0.5, y: 0.5 },
+                    zIndex: 100
+                });
+            }, 500);
+        }
+
+        function endSequence() {
+            curtain.style.transition = 'opacity 3s ease-in';
+            curtain.style.opacity = '1'; // Fade to black
+            body.classList.remove('lights-on'); 
+            
+            setTimeout(() => {
+               // REDIRECT TO PAGE 3
+               window.location.href = "page3.html";
+            }, 3000);
+        }
+    });
+</script>
+</body>
+</html>

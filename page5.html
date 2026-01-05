@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memories</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  width:100vw;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:'Fredoka', sans-serif;
+  overflow:hidden;
+  transition:background 1s ease;
+}
+
+/* black fade overlay */
+.fade-black{
+  position:fixed;
+  inset:0;
+  background:#000;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 4s ease;
+}
+
+.fade-black.show{
+  opacity:1;
+}
+
+.center{
+  max-width:900px;
+  padding:40px;
+  text-align:center;
+}
+
+.memories{
+  background:rgba(255,255,255,0.78);
+  border-radius:24px;
+  font-size:1.4rem;
+  line-height:2;
+  color:#000;
+}
+
+.pic{
+  max-width:85%;
+  max-height:85%;
+  border-radius:22px;
+  box-shadow:0 20px 45px rgba(0,0,0,0.5);
+  display:none;
+}
+
+.final-img{
+  max-width:85%;
+  max-height:85%;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<audio id="darkMusic" autoplay loop>
+  <source src="Darkhaast.mp3" type="audio/mp3">
+</audio>
+
+<!-- SCENE 1 -->
+<div class="center memories" id="scene1">
+Hi kiwi ! Ik it's been a while since we have had a good much needed convo....
+Thanks for understanding me, my situations, my problems and yet deciding to hold back on each other...
+I'm sorry even rn I can't give much time to you 🙂..
+but I hope whatever I did to surprise you will put a smile on your face whenever u think of it...
+Thanks for knowing the exact time when I need those much needed cozy paragraphs..
+thanks for being so strict when I'm procrastinating due to showing my love to you ..
+thank you for making yourself adjust in the delusional imaginations I thought of with you....
+Maybe we are missing the bulk of things that we could have done if we were offline mates...
+But whatever we have rn, that's more than anything I could imagine...
+Once again HAPPPYYYYY BADDAYYY TO MY BETUU🥺💗🎀
+</div>
+
+<img src="ourpic.png" class="pic" id="scene2">
+<img src="baibai.png" class="final-img" id="scene3">
+
+<!-- black fade layer -->
+<div class="fade-black" id="fade"></div>
+
+<script>
+const body = document.body;
+const s1 = document.getElementById("scene1");
+const s2 = document.getElementById("scene2");
+const s3 = document.getElementById("scene3");
+const fade = document.getElementById("fade");
+
+body.style.background = "url('bg5.png') no-repeat center/cover";
+
+setTimeout(() => {
+  s1.style.display = "none";
+  body.style.background = "url('bg6.png') no-repeat center/cover";
+  s2.style.display = "block";
+}, 30000);
+
+setTimeout(() => {
+  s2.style.display = "none";
+  body.style.background = "url('bg6.png') no-repeat center/cover";
+  s3.style.display = "block";
+}, 37000);
+
+/* fade to black after everything */
+setTimeout(() => {
+  fade.classList.add("show");
+}, 44000);
+</script>
+
+</body>
+</html>

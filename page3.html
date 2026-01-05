@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memories</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  width:100vw;
+  height:100vh;
+  background:url("bg3.png") no-repeat center/cover;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:'Fredoka', sans-serif;
+  overflow:hidden;
+}
+
+.slideshow{
+  width:100%;
+  height:100%;
+  position:relative;
+}
+
+.slide{
+  position:absolute;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  opacity:0;
+  transition:opacity 1s ease;
+}
+
+.slide img{
+  max-width:90%;
+  max-height:90%;
+  border-radius:20px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.6);
+}
+
+.slide.active{
+  opacity:1;
+}
+
+/* NEXT BUTTON */
+#nextBtn{
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:12px 30px;
+  font-size:16px;
+  border:none;
+  border-radius:30px;
+  background:rgba(255,255,255,0.9);
+  color:#000;
+  cursor:pointer;
+  font-family:'Fredoka', sans-serif;
+  box-shadow:0 8px 20px rgba(0,0,0,0.35);
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<audio id="bgMusic" loop>
+  <source src="KMTK.mp3" type="audio/mp3">
+</audio>
+
+<div class="slideshow">
+  <div class="slide active"><img src="p1.png"></div>
+  <div class="slide"><img src="p2.png"></div>
+  <div class="slide"><img src="p3.png"></div>
+  <div class="slide"><img src="p4.png"></div>
+  <div class="slide"><img src="p5.png"></div>
+</div>
+
+<button id="nextBtn" onclick="goNext()">Next</button>
+
+<script>
+const music = document.getElementById("bgMusic");
+const slides = document.querySelectorAll(".slide");
+const nextBtn = document.getElementById("nextBtn");
+
+let index = 0;
+let firstRoundDone = false;
+
+// restore music
+window.onload = () => {
+  if (localStorage.getItem("playMusic") === "yes") {
+    const t = localStorage.getItem("musicTime");
+    if (t) music.currentTime = parseFloat(t);
+    music.play();
+  }
+};
+
+// save music time
+setInterval(() => {
+  if (!music.paused) {
+    localStorage.setItem("musicTime", music.currentTime);
+  }
+}, 500);
+
+// slideshow logic
+setInterval(() => {
+  slides[index].classList.remove("active");
+  index = (index + 1) % slides.length;
+  slides[index].classList.add("active");
+
+  // after one full cycle, show NEXT button
+  if (index === 0 && !firstRoundDone) {
+    firstRoundDone = true;
+    nextBtn.style.display = "block";
+  }
+}, 3000);
+
+function goNext(){
+  // yahan page 4 jaayega (music change wahan hoga)
+  window.location.href = "page4.html";
+}
+</script>
+
+</body>
+</html>

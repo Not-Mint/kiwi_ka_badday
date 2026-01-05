@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Kiwi!</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* --- GLOBAL RESET & THEME --- */
+        :root {
+            --theme-pink: #ffb6c1;
+            --theme-rose: #ff69b4;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --text-dark: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; }
+
+        /* --- THREE.JS BACKGROUND --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Behind everything */
+            pointer-events: none;
+        }
+
+        /* --- DYNAMIC HEADER --- */
+        #dynamic-header {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.2rem;
+            color: #4a4a4a;
+            letter-spacing: 0.5px;
+            
+            /* Glassmorphism */
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 0; /* Hidden initially */
+        }
+        #dynamic-header.visible { opacity: 1; top: 20px; }
+
+        /* --- TRANSITION OVERLAY --- */
+        #transition-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; /* Flash white/pink */
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* --- VIEWS --- */
+        section.view {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            z-index: 10;
+        }
+        section.view.active { display: flex; }
+
+        /* ================= SCENE 0: REDESIGNED ERROR ================= */
+        #view-error {
+            background: #f4f4f4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #5f6368;
+        }
+
+        /* Glassmorphism Container */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .network-icon {
+            font-size: 4rem;
+            color: var(--theme-pink);
+            margin-bottom: 20px;
+            animation: pulseIcon 2s infinite;
+        }
+
+        @keyframes pulseIcon {
+            0% { opacity: 0.6; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.6; transform: scale(0.95); }
+        }
+
+        #view-error h1 {
+            font-size: 24px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 12px;
+        }
+        
+        #view-error p {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .status-code {
+            font-family: monospace;
+            background: rgba(0,0,0,0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* Interactive Elements */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            margin-top: 15px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--theme-pink);
+            width: 0%;
+            transition: width 2s ease;
+        }
+
+        .action-btn {
+            background: var(--theme-pink);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(255, 182, 193, 0.4);
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            background: var(--theme-rose);
+            box-shadow: 0 6px 16px rgba(255, 105, 180, 0.5);
+        }
+
+        /* Surprise Section inside Error */
+        #error-surprise {
+            display: none;
+            text-align: center;
+        }
+        #error-surprise h1 { font-family: 'Pacifico', cursive; font-size: 2.2rem; color: var(--theme-rose); }
+        #error-surprise p { font-family: 'Fredoka', sans-serif; font-size: 1.2rem; }
+
+        /* ================= SCENE 1: INTRO (Strict Layout) ================= */
+        #view-page1 {
+            background: url("bg1.png") no-repeat center/cover;
+            font-family: 'Fredoka', sans-serif;
+        }
+        .p1-overlay {
+            width: 100%; height: 100%;
+            backdrop-filter: blur(6px);
+            display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .p1-content {
+            background: rgba(255,255,255,0.78);
+            padding: 45px 40px;
+            border-radius: 24px;
+            max-width: 780px;
+            text-align: center;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.25);
+            animation: slideUpFade 1.8s ease;
+        }
+        .p1-content h1 { font-size: 2rem; margin-bottom: 18px; color: #000; }
+        .p1-content p { font-size: 2rem; line-height: 1.9; color: #000; }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ================= SCENE 2: PARTY (Strict Layout) ================= */
+        #view-page2 {
+            background-color: #000;
+            background-image: url('https://z-cdn-media.chatglm.cn/files/71c98a46-e856-43cc-b1d2-e1a7d91fadc0.png?auth_key=1867026674-50f75728974d4beda9d42d0a1f8c1bf5-0-27c128ff43f9df7a2d34b78e54bf4e4d');
+            background-size: cover;
+            background-position: center;
+            font-family: 'Pacifico', cursive;
+            transition: opacity 2s ease-in-out;
+        }
+        #p2-curtain {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: black; z-index: 1000; transition: opacity 1s ease;
+        }
+        /* Banner & Cake: NO POSITION CHANGE */
+        #p2-banner {
+            position: absolute; top: -400px; left: 58%; transform: translateX(-60%);
+            width: 80%; max-width: 600px; z-index: 20;
+            transition: top 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #p2-banner img { width: 80%; height: auto; display: block; }
+        
+        #p2-cake {
+            position: absolute; bottom: -400px; left: 52%; transform: translateX(-50%);
+            width: 80%; max-width: 400px; z-index: 20;
+            transition: bottom 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); transition-delay: 0.8s;
+        }
+        #p2-cake img { width: 80%; height: auto; display: block; }
+
+        #p2-lights {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;
+            background: radial-gradient(circle, transparent 60%, rgba(255,255,255,0) 100%);
+            mix-blend-mode: overlay;
+        }
+
+        .celebrating #p2-banner { top: 2%; }
+        .celebrating #p2-cake { bottom: 3%; }
+        .lights-on #p2-lights { animation: discoLights 2s infinite alternate; }
+
+        @keyframes discoLights {
+            0% { box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.2); }
+            50% { box-shadow: inset 0 0 50px rgba(0, 0, 255, 0.2); }
+            100% { box-shadow: inset 0 0 50px rgba(255, 0, 255, 0.2); }
+        }
+
+        /* Improved Balloon Styles */
+        #balloon-layer { position: absolute; inset: 0; pointer-events: none; z-index: 1000; overflow: hidden; }
+        .balloon {
+            position: absolute; bottom: -150px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            opacity: 0.9;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1);
+            /* Sway animation handled via CSS */
+            animation: floatUp linear forwards, sway ease-in-out infinite alternate;
+        }
+        .balloon::after {
+            content: ''; position: absolute; bottom: -20px; left: 50%; width: 1px; height: 20px; background: rgba(255,255,255,0.7);
+        }
+        @keyframes sway {
+            0% { transform: translateX(0) rotate(0); }
+            100% { transform: translateX(15px) rotate(8deg); }
+        }
+
+        /* ================= SCENE 3: SLIDESHOW (Strict Layout) ================= */
+        #view-page3 {
+            background: url("bg3.png") no-repeat center/cover;
+            font-family: 'Fredoka', sans-serif;
+        }
+        .slideshow-container { width: 100%; height: 100%; position: relative; }
+        .slide {
+            position: absolute; inset: 0; display: flex; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 1s ease;
+        }
+        .slide.visible { opacity: 1; }
+        .slide img { max-width: 90%; max-height: 90%; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        
+        #p3-next-btn, #p4-next-btn {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            padding: 12px 30px; font-size: 16px; border: none; border-radius: 30px;
+            background: rgba(255,255,255,0.9); color: #000; cursor: pointer;
+            font-family: 'Fredoka', sans-serif; box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+            display: none; z-index: 100; transition: transform 0.2s;
+        }
+        #p3-next-btn:hover, #p4-next-btn:hover { transform: translateX(-50%) scale(1.1); }
+
+        /* ================= SCENE 4: POEM (Strict Layout) ================= */
+        #view-page4 {
+            background: url("bg4.png") no-repeat center/cover;
+            font-family: 'Fredoka', sans-serif;
+        }
+        .p4-overlay {
+            width: 100%; height: 100%; backdrop-filter: blur(6px);
+            display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .wish-box {
+            background: rgba(255,255,255,0.78); padding: 42px 38px; border-radius: 22px;
+            max-width: 920px; text-align: center; box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+            animation: slideUpFade 1.6s ease;
+        }
+        .wish-box p { font-size: 1.25rem; line-height: 1.6; color: #000; }
+        .bday-line { margin-top: 18px; font-size: 1.35rem; font-weight: 600; }
+
+        /* ================= SCENE 5: CLOSING (Strict Layout) ================= */
+        #view-page5 {
+            background: url("bg5.png") no-repeat center/cover;
+            font-family: 'Fredoka', sans-serif;
+            transition: background 1s ease;
+        }
+        .p5-center { max-width: 900px; padding: 40px; text-align: center; }
+        .p5-memories {
+            background: rgba(255,255,255,0.78); border-radius: 24px; font-size: 1.4rem;
+            line-height: 2; color: #000;
+        }
+        .p5-pic {
+            max-width: 85%; max-height: 85%; border-radius: 22px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.5); display: none; margin: 0 auto;
+        }
+        .p5-final-img { max-width: 85%; max-height: 85%; display: none; margin: 0 auto; }
+
+        .fade-black {
+            position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none;
+            transition: opacity 4s ease; z-index: 9999;
+        }
+        .fade-black.show { opacity: 1; }
+
+        /* --- FINAL SURPRISE TEXT --- */
+        #final-text {
+            position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 10000;
+            color: #fff;
+            font-family: 'Pacifico', cursive;
+            font-size: 2.5rem;
+            text-shadow: 0 0 20px rgba(255, 105, 180, 0.8);
+            opacity: 0;
+            transition: opacity 3s ease;
+            pointer-events: none;
+            text-align: center;
+        }
+        #final-text.visible { opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="dynamic-header">Hmm… something feels off 💭</div>
+
+    <div id="transition-overlay"></div>
+
+    <audio id="track1" src="KMTK.mp3" loop></audio>
+    <audio id="track2" src="ily.mp3" loop></audio>
+    <audio id="track3" src="Darkhaast.mp3" loop></audio>
+
+    <section id="view-error" class="view active">
+        <div class="glass-panel" id="error-main">
+            <div class="network-icon">📡</div>
+            <h1 id="error-title">No Internet Connection</h1>
+            <p id="error-desc">Your computer is unable to connect to the Celebration Server. Try checking your network cables, modem, and router.</p>
+            <div class="status-code">ERR_INTERNET_DISCONNECTED</div>
+            
+            <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <button class="action-btn" id="retry-btn" onclick="retryConnection()">Reload Page</button>
+        </div>
+
+        <div class="glass-panel" id="error-surprise" style="display:none;">
+            <h1>Wait... it's back!</h1>
+            <p>Connection established.<br>No more testing your patience... 🥺</p>
+            <button class="action-btn" onclick="startParty()">Open Surprise ✨</button>
+        </div>
+    </section>
+
+    <section id="view-page1" class="view">
+        <div class="p1-overlay">
+            <div class="p1-content">
+                <h1>finallyyyyyyy its that day for which i have been waiting for so long..</h1>
+                <h1>its yo baddayyyyyy 🎀</h1>
+                <p>
+                  and sorry for making it so secret and creating so much hype  
+                  without waiting anymore  
+                  here we go in 3.. 2.. 1..
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section id="view-page2" class="view">
+        <div id="p2-curtain"></div>
+        <div id="p2-lights"></div>
+        <div id="balloon-layer"></div>
+
+        <div id="p2-banner">
+            <img src="banner.png" alt="Happy Birthday Banner">
+        </div>
+
+        <div id="p2-cake">
+            <img src="cake.png" alt="Sweet 16 Cake">
+        </div>
+    </section>
+
+    <section id="view-page3" class="view">
+        <div class="slideshow-container">
+            <div class="slide visible"><img src="p1.png"></div>
+            <div class="slide"><img src="p2.png"></div>
+            <div class="slide"><img src="p3.png"></div>
+            <div class="slide"><img src="p4.png"></div>
+            <div class="slide"><img src="p5.png"></div>
+        </div>
+        <button id="p3-next-btn" onclick="goToPage4()">Next</button>
+    </section>
+
+    <section id="view-page4" class="view">
+        <div class="p4-overlay">
+            <div class="wish-box">
+                <p>
+                  searched through all the existence of love, searched in all corners of my brain, unfolded my heart twice in a rush, found nothing — nothing but a sush!! never thought i would tear pages, scratch my head, become so anxious to write a word and… i found nothing, nothing but a hope of being around you, writing my poems on the page of your heart, syncing your melodious breathe we will sing, because i can’t describe you in a poem nor in a story, novel neither, how a description could hold the beauty of what you are — the lotus of Vishnu? or Shree herself? for me i hope i could never ever be able to describe what you are, for me i hope you always be what you really are… a theme very challenging yet adoring.
+                </p>
+                <div class="bday-line">
+                  Happy Birthday to you lotus? shree? 🥹 🩷 🫶🏻 🧿
+                </div>
+            </div>
+        </div>
+        <button id="p4-next-btn" onclick="goToPage5()">Next</button>
+    </section>
+
+    <section id="view-page5" class="view">
+        <div class="p5-center p5-memories" id="p5-scene1">
+            Hi kiwi ! Ik it's been a while since we have had a good much needed convo....
+            Thanks for understanding me, my situations, my problems and yet deciding to hold back on each other...
+            I'm sorry even rn I can't give much time to you 🙂..
+            but I hope whatever I did to surprise you will put a smile on your face whenever u think of it...
+            Thanks for knowing the exact time when I need those much needed cozy paragraphs..
+            thanks for being so strict when I'm procrastinating due to showing my love to you ..
+            thank you for making yourself adjust in the delusional imaginations I thought of with you....
+            Maybe we are missing the bulk of things that we could have done if we were offline mates...
+            But whatever we have rn, that's more than anything I could imagine...
+            Once again HAPPPYYYYY BADDAYYY TO MY BETUU🥺💗🎀
+        </div>
+        
+        <img src="ourpic.png" class="p5-pic" id="p5-scene2">
+        <img src="baibai.png" class="p5-final-img" id="p5-scene3">
+        
+        <div class="fade-black" id="p5-fade"></div>
+        <div id="final-text">There is a surprise coming Soon!</div>
+    </section>
+
+    <script>
+        // ================= THREE.JS BACKGROUND (Subtle Hearts) =================
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Create particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 350; // Moderate amount
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for(let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 15; // Spread
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        // Create a soft circle texture using canvas to avoid external images
+        function getTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32; canvas.height = 32;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255, 182, 193, 1)'); // Light Pink
+            gradient.addColorStop(1, 'rgba(255, 182, 193, 0)');
+            context.fillStyle = gradient;
+            context.fillRect(0,0,32,32);
+            const texture = new THREE.Texture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        const material = new THREE.PointsMaterial({
+            size: 0.15,
+            map: getTexture(),
+            transparent: true,
+            opacity: 0.8,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, material);
+        scene.add(particlesMesh);
+        camera.position.z = 5;
+
+        // Mouse interaction
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX / window.innerWidth - 0.5;
+            mouseY = event.clientY / window.innerHeight - 0.5;
+        });
+
+        function animateThree() {
+            requestAnimationFrame(animateThree);
+            particlesMesh.rotation.y += 0.001;
+            particlesMesh.rotation.x += 0.001;
+            
+            // Subtle parallax
+            particlesMesh.rotation.y += mouseX * 0.05;
+            particlesMesh.rotation.x += mouseY * 0.05;
+
+            renderer.render(scene, camera);
+        }
+        animateThree();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ================= NAVIGATION & LOGIC =================
+        
+        const header = document.getElementById('dynamic-header');
+        
+        function updateHeader(text) {
+            header.classList.remove('visible');
+            setTimeout(() => {
+                header.innerText = text;
+                header.classList.add('visible');
+            }, 500);
+        }
+
+        function switchView(viewId) {
+            // Flash transition
+            const overlay = document.getElementById('transition-overlay');
+            overlay.style.opacity = '1';
+
+            setTimeout(() => {
+                // Hide all views
+                document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+                // Show new view
+                const target = document.getElementById(viewId);
+                if(target) target.classList.add('active');
+                
+                // Fade out flash
+                overlay.style.opacity = '0';
+            }, 800);
+        }
+
+        // --- SCENE 0: INTERACTIVE ERROR ---
+        let attempts = 0;
+        
+        function retryConnection() {
+            attempts++;
+            const title = document.getElementById('error-title');
+            const desc = document.getElementById('error-desc');
+            const btn = document.getElementById('retry-btn');
+            const bar = document.getElementById('progress-bar');
+            const fill = document.getElementById('progress-fill');
+            const icon = document.querySelector('.network-icon');
+
+            btn.disabled = true;
+            btn.innerText = "Diagnosing...";
+            bar.style.display = 'block';
+            
+            // Fake progress animation
+            fill.style.width = '0%';
+            setTimeout(() => fill.style.width = '70%', 100);
+
+            setTimeout(() => {
+                if (attempts === 1) {
+                    fill.style.width = '100%';
+                    setTimeout(() => {
+                        title.innerText = "Connection Timed Out";
+                        desc.innerText = "The server is taking too long to respond. This might be due to high traffic or a firewall blocking the surprise.";
+                        btn.innerText = "Try Again";
+                        btn.disabled = false;
+                        fill.style.width = '0%';
+                        bar.style.display = 'none';
+                        icon.style.color = '#ff69b4'; // Darker pink warning
+                    }, 500);
+                } else {
+                    // Success / Surprise
+                    fill.style.width = '100%';
+                    setTimeout(() => {
+                        document.getElementById('error-main').style.display = 'none';
+                        document.getElementById('error-surprise').style.display = 'block';
+                        updateHeader("Wait... what's this? 🎀");
+                    }, 800);
+                }
+            }, 2000);
+        }
+
+        function startParty() {
+            // Play Track 1
+            const t1 = document.getElementById("track1");
+            t1.play().catch(e => console.log("Audio play failed:", e));
+
+            switchView('view-page1');
+            updateHeader("Happy Birthday Kiwi! 🎀");
+
+            setTimeout(() => {
+                initPage2();
+            }, 10000);
+        }
+
+        // --- SCENE 2: PARTY ---
+        function initPage2() {
+            switchView('view-page2');
+            updateHeader("Let's Celebrate! 🥳");
+            
+            const p2Section = document.getElementById('view-page2');
+            const curtain = document.getElementById('p2-curtain');
+            
+            setTimeout(() => {
+                curtain.style.opacity = '0';
+                
+                setTimeout(() => {
+                    p2Section.classList.add('celebrating');
+                    
+                    setTimeout(() => {
+                        p2Section.classList.add('lights-on');
+                        spawnBalloons();
+                        partyPopperEffect();
+                        startContinuousConfetti();
+                    }, 1500);
+                }, 1000);
+            }, 500);
+
+            // Wait 12s then move to Page 3
+            setTimeout(() => {
+                curtain.style.opacity = '1'; 
+                setTimeout(() => {
+                   initPage3();
+                }, 2000);
+            }, 12000);
+        }
+
+        // --- BALLOONS LOGIC (ENHANCED) ---
+        function spawnBalloons() {
+            const layer = document.getElementById('balloon-layer');
+            const colors = ['#ffb6c1', '#ff69b4', '#ffffff', '#ffc0cb', '#ffe4e1'];
+            
+            // Increased count to 50
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const b = document.createElement('div');
+                    b.classList.add('balloon');
+                    
+                    const left = Math.random() * 95; 
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const size = Math.random() * 40 + 40; // 40px to 80px
+                    
+                    b.style.left = left + '%';
+                    b.style.width = size + 'px';
+                    b.style.height = (size * 1.2) + 'px';
+                    b.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), ${color} 60%, ${color} 100%)`;
+                    
+                    // Sway duration matches float duration somewhat
+                    const floatDuration = Math.random() * 5 + 6 + 's';
+                    const swayDuration = Math.random() * 2 + 2 + 's';
+                    
+                    b.style.animation = `floatUp ${floatDuration} linear forwards, sway ${swayDuration} ease-in-out infinite alternate`;
+                    
+                    layer.appendChild(b);
+                    
+                    // Cleanup
+                    setTimeout(() => b.remove(), parseFloat(floatDuration) * 1000);
+                }, i * 200);
+            }
+        }
+        
+        // Dynamic Keyframe injection for balloons vertical float
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `
+            @keyframes floatUp {
+                0% { bottom: -150px; opacity: 0; }
+                10% { opacity: 1; }
+                100% { bottom: 120vh; opacity: 1; }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+
+        function partyPopperEffect() {
+            confetti({ particleCount: 150, spread: 80, origin: { x: 0.1, y: 0.8 }, colors: ['#ffb6c1', '#fff'] });
+            setTimeout(() => confetti({ particleCount: 150, spread: 80, origin: { x: 0.9, y: 0.8 }, colors: ['#ffb6c1', '#fff'] }), 200);
+        }
+        
+        function startContinuousConfetti() {
+            const end = Date.now() + 8000;
+            (function frame() {
+                confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff69b4', '#fff'] });
+                confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff69b4', '#fff'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        // --- SCENE 3: SLIDESHOW ---
+        let slideInterval;
+        function initPage3() {
+            switchView('view-page3');
+            updateHeader("You 🩷✨");
+            
+            const slides = document.querySelectorAll('#view-page3 .slide');
+            const nextBtn = document.getElementById('p3-next-btn');
+            let idx = 0;
+            let rounds = 0;
+
+            slideInterval = setInterval(() => {
+                slides[idx].classList.remove('visible');
+                idx = (idx + 1) % slides.length;
+                slides[idx].classList.add('visible');
+
+                if (idx === 0 && rounds === 0) {
+                    rounds = 1;
+                    nextBtn.style.display = 'block';
+                }
+            }, 3000);
+        }
+
+        function goToPage4() {
+            clearInterval(slideInterval);
+            const t1 = document.getElementById("track1");
+            const t2 = document.getElementById("track2");
+            fadeOut(t1);
+            t2.play();
+            initPage4();
+        }
+
+        // --- SCENE 4: POEM ---
+        function initPage4() {
+            switchView('view-page4');
+            updateHeader("For You 💌");
+            
+            setTimeout(() => {
+                document.getElementById('p4-next-btn').style.display = 'block';
+            }, 30000); 
+        }
+
+        function goToPage5() {
+            const t2 = document.getElementById("track2");
+            const t3 = document.getElementById("track3");
+            fadeOut(t2);
+            t3.play();
+            initPage5();
+        }
+
+        // --- SCENE 5: CLOSING & FINAL SURPRISE ---
+        function initPage5() {
+            switchView('view-page5');
+            updateHeader("Forever Yours 💗");
+            
+            const view = document.getElementById('view-page5');
+            const s1 = document.getElementById('p5-scene1');
+            const s2 = document.getElementById('p5-scene2');
+            const s3 = document.getElementById('p5-scene3');
+            const fade = document.getElementById('p5-fade');
+            const finalText = document.getElementById('final-text');
+
+            // 1. Text (30s)
+            setTimeout(() => {
+                s1.style.display = 'none';
+                view.style.backgroundImage = "url('bg6.png')";
+                s2.style.display = 'block';
+                updateHeader("Us 📸");
+            }, 30000);
+
+            // 2. Pic (7s)
+            setTimeout(() => {
+                s2.style.display = 'none';
+                s3.style.display = 'block';
+                updateHeader("Bai Bai 👋");
+            }, 37000);
+
+            // 3. Fade to Black (at 44s)
+            setTimeout(() => {
+                fade.classList.add('show');
+                header.style.opacity = '0'; // Hide header
+            }, 44000);
+
+            // 4. Show "Surprise Coming Soon" (20s AFTER fade)
+            // 44000 + 20000 = 64000
+            setTimeout(() => {
+                finalText.classList.add('visible');
+            }, 64000);
+        }
+
+        function fadeOut(audio) {
+            const fadeAudio = setInterval(() => {
+                if (audio.volume > 0.1) {
+                    audio.volume -= 0.1;
+                } else {
+                    clearInterval(fadeAudio);
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 1; 
+                }
+            }, 200);
+        }
+        
+        // Initial header
+        setTimeout(() => {
+            header.classList.add('visible');
+        }, 100);
+
+    </script>
+</body>
+</html>
